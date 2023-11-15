@@ -5,6 +5,20 @@
 class Player 
 {
     public $level;
+
+    public function __construct(int $level)
+    {
+        $this->level = $level;
+    }
+
+    public function getLevel()
+    {
+        return $this->level;
+    }
+    public function setLevel(int $newLevel)
+    {
+        $this->level = $newLevel;
+    }
 }
 
 class Encounter
@@ -31,10 +45,8 @@ class Encounter
 }
 $encounter = new Encounter;
 
-$greg = new Player;
-$jade = new Player;
-$greg->level = 400;
-$jade->level = 800;
+$greg = new Player(400);
+$jade = new Player(800);
 
 echo sprintf(
     'Greg à %.2f%% chance de gagner face a Jade',
