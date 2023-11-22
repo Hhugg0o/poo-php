@@ -1,66 +1,95 @@
 <?php
 
+/*
+ * This file is part of the OpenClassRoom PHP Object Course.
+ *
+ * (c) Grégoire Hébert <contact@gheb.dev>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
+declare(strict_types=1);
 
-class Player 
+class Lobby
 {
-    public $level;
+    /** @var array<QueuingPlayer> */
+    public  $queuingPlayers = [];
 
-    public function __construct(int $level)
+    public function findOponents(QueuingPlayer $player): array
     {
-        $this->level = $level;
+        $minLevel = round($player->getRatio() / 100);
+        $maxLevel = $minLevel + $player->getRange();
+
+        return array_filter($this->queuingPlayers, static function (QueuingPlayer $potentialOponent) use ($minLevel, $maxLevel, $player) {
+            $playerLevel = round($potentialOponent->getRatio() / 100);
+
+            return $player !== $potentialOponent && ($minLevel <= $playerLevel) && ($playerLevel <= $maxLevel);
+        });
     }
 
-    public function getLevel()
+    public function addPlayer(Player $player): void
     {
-        return $this->level;
-    }
-    public function setLevel(int $newLevel)
-    {
-        $this->level = $newLevel;
-    }
-}
-
-class Encounter
-{
-    const RESULT_WINNER = 1;
-    const RESULT_LOSER = -1;
-    const RESULT_DRAW = 0;
-    const RESULT_POSSIBILITIES = [self::RESULT_WINNER, self::RESULT_LOSER, self::RESULT_DRAW];
-
-
-    public static function probabilityAgainst(int $levelPlayerOne, int $againstLevelPlayerTwo)
-    {
-        return 1/(1+(10 ** (($againstLevelPlayerTwo - $levelPlayerOne)/400)));
+        $this->queuingPlayers[] = new QueuingPlayer($player);
     }
 
-    public static function setNewLevel(int &$levelPlayerOne, int $againstLevelPlayerTwo, int $playerOneResult)
+    public function addPlayers(Player ...$players): void
     {
-        if (!in_array($playerOneResult, self::RESULT_POSSIBILITIES)) {
-            trigger_error(sprintf('Invalid result. Expected %s',implode(' or ', self::RESULT_POSSIBILITIES)));
+        foreach ($players as $player) {
+            $this->addPlayer($player);
         }
-
-        $levelPlayerOne += (int) (32 * ($playerOneResult - self::probabilityAgainst($levelPlayerOne, $againstLevelPlayerTwo)));
     }
 }
-$encounter = new Encounter;
 
-$greg = new Player(400);
-$jade = new Player(800);
+class Player
+{
+    public function __construct( string $name,  float $ratio = 400.0)
+    {
+    }
 
-echo sprintf(
-    'Greg à %.2f%% chance de gagner face a Jade',
-    $encounter::probabilityAgainst($greg->level, $jade->level)*100
-).PHP_EOL;
+    public function getName(): string
+    {
+        return $this->name;
+    }
 
-// Imaginons que greg l'emporte tout de même.
-$encounter::setNewLevel($greg->level, $jade->level, Encounter::RESULT_WINNER);
-$encounter::setNewLevel($jade->level, $greg->level, Encounter::RESULT_LOSER);
+    private function probabilityAgainst(self $player): float
+    {
+        return 1 / (1 + (10 ** (($player->getRatio() - $this->getRatio()) / 400)));
+    }
 
-echo sprintf(
-    'les niveaux des joueurs ont évolués vers %s pour Greg et %s pour Jade',
-    $greg->level,
-    $jade->level
-);
+    public function updateRatioAgainst(self $player, int $result): void
+    {
+        $this->ratio += 32 * ($result - $this->probabilityAgainst($player));
+    }
+
+    public function getRatio(): float
+    {
+        return $this->ratio;
+    }
+}
+
+class QueuingPlayer extends Player {
+    public function __construct(Player $player, int $range = 1)
+    {
+        parent::__construct($player->getName(), $player->getRatio());
+        $this->range = $range;
+    }
+    public function getRange(): void 
+    {
+        return $this->range;;;;
+    }
+    public function upgradeRange(): void 
+    {
+        $this->range = $range;
+    }
+}
+
+$greg = new Player('greg', 400);
+$jade = new Player('jade', 476);
+
+$lobby = new Lobby();
+$lobby->addPlayers($greg, $jade);
+
+var_dump($lobby->findOponents($lobby->queuingPlayers[0]));
 
 exit(0);
